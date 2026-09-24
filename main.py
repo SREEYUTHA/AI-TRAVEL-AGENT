@@ -121,6 +121,46 @@ from google.genai.types import Content, Part
 runner = InMemoryRunner(agent=agent, app_name="agents")
 
 
+# =========================
+# 🔹 STREAMLIT FUNCTION
+# =========================
+async def _run_agent_async(user_input):
+    session_id = "chat_session"
+
+    # create session (safe if already exists)
+    try:
+        await runner.session_service.create_session(
+            app_name=runner.app_name,
+            user_id="user1",
+            session_id=session_id,
+        )
+    except:
+        pass
+
+    # convert user input into structured format
+    content = Content(role="user", parts=[Part(text=user_input)])
+
+    response_text = ""
+
+    # run agent and collect response
+    async for event in runner.run_async(
+        user_id="user1",
+        session_id=session_id,
+        new_message=content
+    ):
+        if event.content and event.content.parts and event.author != "user":
+            for part in event.content.parts:
+                if part.text:
+                    response_text += part.text
+
+    return response_text
+
+
+def run_agent(user_input):
+    """Wrapper for Streamlit (sync call)"""
+    return asyncio.run(_run_agent_async(user_input))
+
+# Terminal Chat Functionality
 async def chat():
     session_id = "chat_session"
 
@@ -152,4 +192,5 @@ async def chat():
                         print(f"Agent: {part.text}")
 
 
-asyncio.run(chat())
+if __name__ == "__main__":
+    asyncio.run(chat())

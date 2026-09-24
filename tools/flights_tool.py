@@ -3,8 +3,8 @@
 import requests
 import os
 
-API_KEY = "dfb5a20da10ba39da653003fbaf8796c"
-#API_KEY = os.getenv("AVIATIONSTACK_API_KEY")
+# API_KEY = "dfb5a20da10ba39da653003fbaf8796c"
+API_KEY = os.getenv("AVIATIONSTACK_API_KEY")
 
 def get_flights(from_city, to_city):
     """
