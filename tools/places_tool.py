@@ -7,24 +7,6 @@ load_dotenv()
 
 API_KEY = os.getenv("GEOAPIFY_API_KEY")
 
-'''
-def get_coordinates(city):
-    url = "https://api.geoapify.com/v1/geocode/search"
-
-    params = {
-        "text": city,
-        "apiKey": API_KEY
-    }
-
-    response = requests.get(url, params=params)
-    data = response.json()
-
-    if "features" not in data or not data["features"]:
-        return None
-
-    coords = data["features"][0]["geometry"]["coordinates"]
-    return coords  # [lon, lat]
-'''
 
 def get_places(city):
     """
@@ -41,36 +23,94 @@ def get_places(city):
     url = "https://api.geoapify.com/v2/places"
 
     params = {
-        #"categories": "tourism.sights",
-        "categories": "tourism.sights,tourism.attraction",
-        "filter": f"circle:{lon},{lat},15000",  # 5km radius
-        "limit": 5,
-        "apiKey": API_KEY
+        "categories": (
+            "tourism.sights.archaeological_site,"
+            "tourism.sights.castle,"
+            "tourism.sights.fort,"
+            "tourism.sights.monastery,"
+            "tourism.sights.tower,"
+            "tourism.sights.ruines,"
+            "tourism.sights.place_of_worship,"
+            "tourism.attraction"
+        ),
+        "filter": f"circle:{lon},{lat},30000",
+        "bias": f"proximity:{lon},{lat}",
+        "limit": 20,
+        "apiKey": API_KEY,
     }
-
     response = requests.get(url, params=params)
     data = response.json()
 
     if "features" not in data or not data["features"]:
         return f"❌ No places found in {city}"
 
-    result = f"📍 Top places to visit in {city.title()}:\n\n"
+    result = f"📍 Tourist places found in {city.title()}:\n\n"
 
-    count = 0
-    for i, place in enumerate(data["features"], 1):
-        #name = place["properties"].get("name", "Unknown place")
-        name = place["properties"].get("name")
+    seen = set()
+    places = []
 
+    for place in data["features"]:
+        properties = place["properties"]
+
+        name = properties.get("name")
+        categories = properties.get("categories", [])
+
+        # Ignore unnamed places
         if not name:
             continue
 
-        count += 1
+        # Ignore duplicates
+        if name in seen:
+            continue
+
+        seen.add(name)
+
+        # Give higher priority to important sightseeing categories
+        score = 0
+
+        if "tourism.sights.archaeological_site" in categories:
+            score += 6
+
+        if "tourism.sights.castle" in categories:
+            score += 6
+
+        if "tourism.sights.fort" in categories:
+            score += 6
+
+        if "tourism.sights.ruines" in categories:
+            score += 5
+
+        if "tourism.sights.place_of_worship" in categories:
+            score += 4
+
+        if "tourism.attraction" in categories:
+            score += 3
+
+        if "tourism.sights" in categories:
+            score += 2
+
+        # Reduce priority for memorials/statues/artwork
+        if "tourism.sights.memorial" in categories:
+            score -= 4
+
+        if "tourism.attraction.artwork" in categories:
+            score -= 3
+
+        if "tourism.attraction.artwork.statue" in categories:
+            score -= 5
+    
+        places.append((score, name))
+
+    # Sort by score
+    places.sort(reverse=True)
+
+    # Take top 5
+    for count, (_, name) in enumerate(places[:8], 1):
         result += f"{count}. {name}\n"
 
-        if count == 5:
-            break
-        result += f"{i}. {name}\n"
-
-    
-
     return result
+
+
+if __name__ == "__main__":
+    result = get_places("Delhi")
+    print(result)

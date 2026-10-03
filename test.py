@@ -2,7 +2,7 @@ import webbrowser
 
 '''
 webbrowser.open("https://www.google.com")
-'''
+
 
 def redirect_to_booking(from_city, to_city):
     iata_map = {
@@ -33,3 +33,14 @@ source = input("Enter source city: ")
 destination = input("Enter destination city: ")
 
 print(redirect_to_booking(source, destination))
+
+'''
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+API_KEY = os.getenv("SERPAPI_KEY")
+
+print("SerpApi key loaded:", bool(API_KEY))

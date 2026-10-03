@@ -1,38 +1,30 @@
 import requests
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-API_KEY = "3bdaacd9b9cb4f1fae910e3276806b5a"
-#API_KEY = os.getenv("GEOAPIFY_API_KEY")
+# API_KEY = "3bdaacd9b9cb4f1fae910e3276806b5a"
+API_KEY = os.getenv("GEOAPIFY_API_KEY")
 
 def get_coordinates(city):
     url = "https://api.geoapify.com/v1/geocode/search"
 
     params = {
-        "text": city,
+        "text": f"{city}, India",
         "apiKey": API_KEY
     }
 
     response = requests.get(url, params=params)
     data = response.json()
 
-    '''
-    if not data["features"]:
-        return None
-
-    if "features" not in data or not data["features"]:
-        return None
-
-    coords = data["features"][0]["geometry"]["coordinates"]
-    return coords  # [lon, lat]
-    '''
     # ✅ FIRST TRY
     if "features" in data and data["features"]:
         return data["features"][0]["geometry"]["coordinates"]
 
     # 🔁 SECOND TRY (add India)
-    params["text"] = f"{city}, India"
-    response = requests.get(url, params=params)
-    data = response.json()
+    # params["text"] = f"{city}, India"
+    # response = requests.get(url, params=params)
+    # data = response.json()
 
     if "features" in data and data["features"]:
         return data["features"][0]["geometry"]["coordinates"]
@@ -65,3 +57,9 @@ def get_route_info(from_city, to_city):
     time = data["features"][0]["properties"]["time"] / 3600
 
     return f"Distance: {distance:.2f} km, Duration: {time:.2f} hours"
+
+'''
+if __name__ == "__main__":
+    result = get_route_info("Hyderabad", "Goa")
+    print(result)
+'''

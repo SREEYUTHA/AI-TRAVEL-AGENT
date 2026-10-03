@@ -43,6 +43,7 @@ print(response)
 '''
 
 import asyncio
+from unittest import runner
 from google.adk.agents import Agent
 from google.adk.agents import LlmAgent
 from google.adk.runners import InMemoryRunner
@@ -121,6 +122,7 @@ from google.genai.types import Content, Part
 runner = InMemoryRunner(agent=agent, app_name="agents")
 
 
+
 # =========================
 # 🔹 STREAMLIT FUNCTION
 # =========================
@@ -134,14 +136,15 @@ async def _run_agent_async(user_input):
             user_id="user1",
             session_id=session_id,
         )
-    except:
-        pass
+    except Exception as e:
+        print("Session already exists or error:", e)
 
     # convert user input into structured format
     content = Content(role="user", parts=[Part(text=user_input)])
 
     response_text = ""
 
+    
     # run agent and collect response
     async for event in runner.run_async(
         user_id="user1",
@@ -152,6 +155,31 @@ async def _run_agent_async(user_input):
             for part in event.content.parts:
                 if part.text:
                     response_text += part.text
+    """
+    async for event in runner.run_async(
+        user_id="user1",
+        session_id=session_id,
+        new_message=content
+    ):
+
+        # print("\n--- EVENT ---")
+        # print("Author:", event.author)
+
+        if event.content:
+            print("Content:", event.content)
+
+        if event.actions:
+            print("Actions:", event.actions)
+
+        if event.content and event.content.parts:
+            for part in event.content.parts:
+
+                if part.text:
+                    print("TEXT:", part.text)
+
+                    if event.author != "user":
+                        response_text += part.text
+    """
 
     return response_text
 
@@ -160,8 +188,10 @@ def run_agent(user_input):
     """Wrapper for Streamlit (sync call)"""
     return asyncio.run(_run_agent_async(user_input))
 
+'''
 # Terminal Chat Functionality
 async def chat():
+    runner = InMemoryRunner(agent=agent, app_name="agents")
     session_id = "chat_session"
 
     await runner.session_service.create_session(
@@ -194,3 +224,12 @@ async def chat():
 
 if __name__ == "__main__":
     asyncio.run(chat())
+'''
+
+if __name__ == "__main__":
+    result = run_agent("Plan a 3-day trip from Hyderabad to Delhi "
+    "from November 10, 2026 to November 13, 2026 "
+    "for 2 travelers with a budget of ₹25,000. "
+    "Find some hotel options too."
+    )
+    print("Agent:", result)

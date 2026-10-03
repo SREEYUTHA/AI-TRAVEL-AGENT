@@ -1,29 +1,41 @@
-#Api_key = dfb5a20da10ba39da653003fbaf8796c
-
 import requests
 import os
+from dotenv import load_dotenv
+from utils.city_lookup import get_destination
 
-# API_KEY = "dfb5a20da10ba39da653003fbaf8796c"
+load_dotenv()
+
+# from tools.places_tool import API_KEY
+
+
 API_KEY = os.getenv("AVIATIONSTACK_API_KEY")
+print("API key loaded:", API_KEY is not None)
 
 def get_flights(from_city, to_city):
     """
     Fetch basic flight data between cities
     """
 
-    from_code = get_iata_code(from_city)
-    to_code = get_iata_code(to_city)
+    from_destination = get_destination(from_city)
+    to_destination = get_destination(to_city)
+
+    if not from_destination or not to_destination:
+        return "❌ Sorry, I don't recognize one of the cities."
+
+
+    from_code = from_destination.get("iata")
+    to_code = to_destination.get("iata")
 
     if not from_code or not to_code:
         return "❌ Sorry, I don't recognize one of the cities."
 
-    url = "http://api.aviationstack.com/v1/flights"
+    url = "https://api.aviationstack.com/v1/flights"
 
     params = {
         "access_key": API_KEY,
-        "dep_iata": get_iata_code(from_city),
-        "arr_iata": get_iata_code(to_city),
-        "limit": 5
+        "dep_iata": from_code,
+        "arr_iata": to_code,
+        "limit": 5,
     }
 
     response = requests.get(url, params=params)
@@ -37,65 +49,30 @@ def get_flights(from_city, to_city):
     if not flights:
         return "No flights found"
 
-    '''    
-    result = []
-
-    for flight in flights[:5]:
-        airline = flight["airline"]["name"]
-        flight_no = flight["flight"]["iata"]
-        status = flight["flight_status"]
-
-        result.append(f"{airline} ({flight_no}) - {status}")
-
-    #return "\n".join(result)
-    '''
     result = []
 
     for flight in flights:
-        dep = flight["departure"]["iata"]
-        arr = flight["arrival"]["iata"]
+        dep = flight.get("departure", {}).get("iata")
+        arr = flight.get("arrival", {}).get("iata")
 
-        if dep != get_iata_code(from_city) or arr != get_iata_code(to_city):
+        if dep != from_code or arr != to_code:
             continue
 
-        airline = flight["airline"]["name"]
-        flight_no = flight["flight"]["iata"]
-        status = flight["flight_status"]
+        airline = flight.get("airline", {}).get("name")
+        flight_no = flight.get("flight", {}).get("iata")
+        status = flight.get("flight_status")
 
-        # add smart enhancements
-        import random
-        price = random.randint(3000, 8000)
-        duration = random.choice(["2h 10m", "2h 30m", "1h 55m"])
+        result.append({
+            "airline": airline,
+            "flight_number": flight_no,
+            "status": status,
+        })
 
-        result.append(
-            f"✈️ {airline} ({flight_no})\n"
-            f"💰 ₹{price} | ⏱ {duration} | Status: {status}\n"
-        )
-
-        result_text = f"✈️ Flights from {from_city} to {to_city}:\n\n"
-
-        for i, flight in enumerate(result[:5], 1):
-            result_text += f"{i}.\n{flight}\n"
-
-        return result_text
+    return result
 
 
-# simple mapping (for now)
-def get_iata_code(city):
-    city = city.strip().lower()
-
-    mapping = {
-        "hyderabad": "HYD",
-        "delhi": "DEL",
-        "mumbai": "BOM",
-        "bangalore": "BLR",
-        "bengaluru": "BLR",
-        "chennai": "MAA"
-    }
-
-    code = mapping.get(city)
-
-    if not code:
-        return None
-
-    return code
+'''
+if __name__ == "__main__":
+    result = get_flights("Hyderabad", "Mumbai")
+    print(result)
+'''
